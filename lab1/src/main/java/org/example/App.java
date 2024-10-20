@@ -10,7 +10,7 @@ import java.util.Map;
 public class App {
     public static void main(String[] args) {
         var users = Generator.generateUsers(1000);
-        List<Chat> chats = Generator.generateChats(50000, users);
+        List<Chat> chats = Generator.generateChats(1000, users);
 
         Instant start, end;
 

@@ -24,6 +24,7 @@ public class Generator {
         // Создаем модель с указанием генератора для поля participants
         Model<Chat> model = Instancio.of(Chat.class)
                 .supply(field(Chat::getParticipants), () -> generateParticipants(users))
+                .supply(field(Chat::getMessages), () ->  Instancio.ofList(Message.class).size(count).create())
                 .toModel();
 
         return Instancio.ofList(model).size(count).create();

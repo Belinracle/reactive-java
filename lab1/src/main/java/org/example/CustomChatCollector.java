@@ -5,52 +5,66 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
-import static java.util.stream.Collector.Characteristics.UNORDERED;
+import static java.util.stream.Collector.Characteristics.*;
 
-public class CustomChatCollector implements Collector<Chat, Map<DayOfWeek, Long>, Map<DayOfWeek, Long>> {
+public class CustomChatCollector implements Collector<Chat, ConcurrentMap<DayOfWeek, Long>, ConcurrentMap<DayOfWeek, Long>> {
 
     @Override
-    public Supplier<Map<DayOfWeek, Long>> supplier() {
-        return HashMap::new;
+    public Supplier<ConcurrentMap<DayOfWeek, Long>> supplier() {
+        var predefinedMap = new ConcurrentHashMap<DayOfWeek, Long>();
+        for (var day : DayOfWeek.values()) {
+            predefinedMap.put(day, 0L);
+        }
+        return () -> predefinedMap;
     }
 
     @Override
-    public BiConsumer<Map<DayOfWeek, Long>, Chat> accumulator() {
+    public BiConsumer<ConcurrentMap<DayOfWeek, Long>, Chat> accumulator() {
         return (accumulator, chat) -> {
-            var messagesMap = chat.getMessages().stream().collect(new CustomMessageCollector());
-            for (DayOfWeek day : DayOfWeek.values()) {
-                var messagesMapValue = messagesMap.get(day) == null ? 0 : messagesMap.get(day);
-                accumulator.compute(day, (k, v) -> (v == null) ? messagesMapValue : v + messagesMapValue);
+            var messageCountPerDay = new HashMap<DayOfWeek, Long>();
+            for (Message message : chat.getMessages()) {
+                var messageDayOfWeek = message.getTimestamp().getDayOfWeek();
+                messageCountPerDay.put(messageDayOfWeek, messageCountPerDay.getOrDefault(messageDayOfWeek, 0L) + 1L);
             }
+            messageCountPerDay.forEach(
+                    (k, v) ->
+                            accumulator.computeIfPresent(k,(key,oldValue)->oldValue+v)
+            );
         };
     }
 
     @Override
-    public BinaryOperator<Map<DayOfWeek, Long>> combiner() {
-        return (map1, map2) -> Stream.concat(map1.entrySet().stream(), map2.entrySet().stream()).collect(
-                Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum));
+    public BinaryOperator<ConcurrentMap<DayOfWeek, Long>> combiner() {
+        return (map1, map2) -> {
+            map2.forEach(
+                    (map2Key, map2Value) -> {
+                        map1.compute(map2Key, (k, v) -> v + map2Value);
+                    });
+            return map1;
+        };
     }
 
     @Override
-    public Function<Map<DayOfWeek, Long>, Map<DayOfWeek, Long>> finisher() {
-        return Function.identity();
+    public Function<ConcurrentMap<DayOfWeek, Long>, ConcurrentMap<DayOfWeek, Long>> finisher() {
+        return null;
     }
 
     @Override
     public Set<Characteristics> characteristics() {
-        return Set.of(UNORDERED, IDENTITY_FINISH);
+        return Set.of(UNORDERED, CONCURRENT, IDENTITY_FINISH);
     }
 
     public static Map<DayOfWeek, Long> countMessagesWithCustomCollector(List<Chat> chats) {
-        return chats.stream().collect(new CustomChatCollector());
+        return chats.stream()
+                .parallel()
+                .collect(new CustomChatCollector());
     }
 }

@@ -29,11 +29,7 @@ public class CustomChatCollector implements Collector<Chat, ConcurrentMap<DayOfW
     @Override
     public BiConsumer<ConcurrentMap<DayOfWeek, Long>, Chat> accumulator() {
         return (accumulator, chat) -> {
-            var messageCountPerDay = new HashMap<DayOfWeek, Long>();
-            for (Message message : chat.getMessages()) {
-                var messageDayOfWeek = message.getTimestamp().getDayOfWeek();
-                messageCountPerDay.put(messageDayOfWeek, messageCountPerDay.getOrDefault(messageDayOfWeek, 0L) + 1L);
-            }
+            var messageCountPerDay = chat.getMessages().stream().parallel().collect(new CustomMessageCollector());
             messageCountPerDay.forEach(
                     (k, v) ->
                             accumulator.computeIfPresent(k,(key,oldValue)->oldValue+v)

@@ -10,7 +10,7 @@ import java.util.Map;
 public class App {
     public static void main(String[] args) {
         var users = Generator.generateUsers(1000);
-//        List<Chat> chats = Generator.generateChats(50000, users);
+        List<Chat> chats = Generator.generateChats(50000, users);
 
         Instant start, end;
 
@@ -75,8 +75,19 @@ public class App {
                         new Message("1", users.get(0), LocalDateTime.of(2024, Month.OCTOBER,19,1,1))
                 ),List.of())
         );
+
         start = Instant.now();
-        Map<DayOfWeek,Long> totalMessages3 = CustomChatCollector.countMessagesWithCustomCollector(newChats);
+        var totalMessages1 = Aggregator.countMessagesPerDayIteratively(chats);
+        end = Instant.now();
+        System.out.println("Итеративный коллектор: " + totalMessages1 + " сообщений. Время: " + (end.toEpochMilli() - start.toEpochMilli()) + " мс");
+
+        start = Instant.now();
+        var totalMessages2 = Aggregator.countMessagesPerDayWithStream(chats);
+        end = Instant.now();
+        System.out.println("Стримовый коллектор: " + totalMessages2 + " сообщений. Время: " + (end.toEpochMilli() - start.toEpochMilli()) + " мс");
+
+        start = Instant.now();
+        Map<DayOfWeek,Long> totalMessages3 = CustomChatCollector.countMessagesWithCustomCollector(chats);
         end = Instant.now();
         System.out.println("Собственный коллектор: " + totalMessages3 + " сообщений. Время: " + (end.toEpochMilli() - start.toEpochMilli()) + " мс");
     }

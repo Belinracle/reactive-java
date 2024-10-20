@@ -1,6 +1,10 @@
 package org.example;
 
+import java.time.DayOfWeek;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Aggregator {
 
@@ -12,6 +16,22 @@ public class Aggregator {
             totalMessages += chat.getMessages().size();
         }
         return totalMessages;
+    }
+
+    public static Map<DayOfWeek,Long> countMessagesPerDayIteratively(List<Chat> chats) {
+        var messageCountPerDay = new HashMap<DayOfWeek,Long>();
+
+        for (Chat chat : chats) {
+            for (Message message : chat.getMessages()) {
+                messageCountPerDay.compute(message.getTimestamp().getDayOfWeek(), (k, v) -> (v == null) ? 1 : v+1 );
+            }
+        }
+        return messageCountPerDay;
+    }
+
+    public static Map<DayOfWeek,Long> countMessagesPerDayWithStream(List<Chat> chats) {
+        return chats.stream().flatMap(chat->chat.getMessages().stream())
+                .collect(Collectors.groupingBy(message -> message.getTimestamp().getDayOfWeek(), Collectors.counting()));
     }
 
     public static long countMessagesTextIteratively(List<Chat> chats) {

@@ -82,7 +82,7 @@ public class App {
         System.out.println("Итеративный коллектор: " + totalMessages1 + " сообщений. Время: " + (end.toEpochMilli() - start.toEpochMilli()) + " мс");
 
         start = Instant.now();
-        var totalMessages2 = Aggregator.countMessagesPerDayWithStream(chats);
+        var totalMessages2 = Aggregator.countMessagesPerDayWithParallelStream(chats);
         end = Instant.now();
         System.out.println("Стримовый коллектор: " + totalMessages2 + " сообщений. Время: " + (end.toEpochMilli() - start.toEpochMilli()) + " мс");
 

@@ -58,6 +58,8 @@ public class CustomChatCollector implements Collector<Chat, ConcurrentMap<DayOfW
         return Set.of(UNORDERED, CONCURRENT, IDENTITY_FINISH);
     }
 
+
+    //https://habr.com/ru/companies/otus/articles/338770/ как юзать кастомный FJPool
     public static Map<DayOfWeek, Long> countMessagesWithCustomCollector(List<Chat> chats) {
         return chats.stream()
                 .parallel()

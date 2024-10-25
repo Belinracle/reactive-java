@@ -33,9 +33,16 @@ public class Aggregator {
         return messageCountPerDay;
     }
 
-    public static Map<DayOfWeek, Long> countMessagesPerDayWithStream(List<Chat> chats) {
-        return chats.parallelStream().flatMap(chat -> chat.getMessages().stream())
+    public static Map<DayOfWeek, Long> countMessagesPerDayWithParallelStream(List<Chat> chats) {
+        return chats.parallelStream()
+                .flatMap(chat -> chat.getMessages().stream())
                 .collect(Collectors.groupingByConcurrent(message -> message.getTimestamp().getDayOfWeek(), Collectors.counting()));
+    }
+
+    public static Map<DayOfWeek, Long> countMessagesPerDayWithStream(List<Chat> chats) {
+        return chats.stream()
+                .flatMap(chat -> chat.getMessages().stream())
+                .collect(Collectors.groupingBy(message -> message.getTimestamp().getDayOfWeek(), Collectors.counting()));
     }
 
     public static long countMessagesTextIteratively(List<Chat> chats) {

@@ -11,8 +11,20 @@ public class Chat {
         this.participants = participants;
     }
 
-    public List<Message> getMessages() { return messages; }
     public List<User> getParticipants() { return participants; }
+
+    public List<Message> getMessages() { return messages; }
+
+    public List<Message> getMessagesWithDelay(long delay) {
+        try {
+            // Задержка для имитации ожидания результата
+            Thread.sleep(delay);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // Сохраняем статус прерывания потока
+            throw new RuntimeException("Interrupted while waiting", e);
+        }
+        return messages;
+    }
 
     @Override
     public String toString() {

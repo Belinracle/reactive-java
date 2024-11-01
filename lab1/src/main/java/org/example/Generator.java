@@ -2,9 +2,13 @@ package org.example;
 
 import org.instancio.Instancio;
 import org.instancio.Model;
+import org.instancio.Select;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
 import static org.instancio.Select.field;
 
 public class Generator {
@@ -21,10 +25,9 @@ public class Generator {
     }
 
     public static List<Chat> generateChats(int count, List<User> users) {
-        // Создаем модель с указанием генератора для поля participants
         Model<Chat> model = Instancio.of(Chat.class)
                 .supply(field(Chat::getParticipants), () -> generateParticipants(users))
-                .supply(field(Chat::getMessages), () ->  Instancio.ofList(Message.class).size(count).create())
+                .supply(field(Chat::getMessages), () -> generateMessages(count, users))
                 .toModel();
 
         return Instancio.ofList(model).size(count).create();

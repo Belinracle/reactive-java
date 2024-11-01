@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 public class JMHBenchmark {
     private List<User> users;
     private List<Chat> chats;
+    private static long delay = 1000L;
 
     @Setup
     public void setup() {
@@ -27,7 +28,7 @@ public class JMHBenchmark {
     @Fork(value = 2, warmups = 1)
 //    @Threads(4)
     public Map<DayOfWeek, Long> iterative() {
-        return Aggregator.countMessagesPerDayIteratively(chats);
+        return Aggregator.countMessagesPerDayIteratively(chats, delay);
     }
 
     @Benchmark
@@ -38,7 +39,7 @@ public class JMHBenchmark {
     @Fork(value = 2, warmups = 1)
 //    @Threads(4)
     public Map<DayOfWeek, Long> stream() {
-        return Aggregator.countMessagesPerDayWithStream(chats);
+        return Aggregator.countMessagesPerDayWithStream(chats, delay);
     }
 
     @Benchmark
@@ -49,7 +50,7 @@ public class JMHBenchmark {
     @Fork(value = 2, warmups = 1)
     @Threads(4)
     public Map<DayOfWeek, Long> streamParallel4Threads() {
-        return Aggregator.countMessagesPerDayWithParallelStream(chats);
+        return Aggregator.countMessagesPerDayWithParallelStream(chats, delay);
     }
 
     @Benchmark
@@ -60,7 +61,7 @@ public class JMHBenchmark {
     @Fork(value = 2, warmups = 1)
     @Threads(1)
     public Map<DayOfWeek, Long> streamParallel1Threads() {
-        return Aggregator.countMessagesPerDayWithParallelStream(chats);
+        return Aggregator.countMessagesPerDayWithParallelStream(chats, delay);
     }
 
     @Benchmark
@@ -71,7 +72,7 @@ public class JMHBenchmark {
     @Fork(value = 2, warmups = 1)
     @Threads(4)
     public Map<DayOfWeek, Long> streamCustomCollector4Threads() {
-        return CustomChatCollector.countMessagesWithCustomCollector(chats);
+        return CustomChatCollector.countMessagesWithCustomCollector(chats, delay);
     }
 
     @Benchmark
@@ -82,7 +83,7 @@ public class JMHBenchmark {
     @Fork(value = 2, warmups = 1)
     @Threads(1)
     public Map<DayOfWeek, Long> streamCustomCollector1Threads() {
-        return CustomChatCollector.countMessagesWithCustomCollector(chats);
+        return CustomChatCollector.countMessagesWithCustomCollector(chats, delay);
     }
 
 }

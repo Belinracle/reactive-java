@@ -1,9 +1,7 @@
 package org.example;
 
 import java.time.DayOfWeek;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -12,10 +10,16 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
-
 import static java.util.stream.Collector.Characteristics.*;
 
 public class CustomChatCollector implements Collector<Chat, ConcurrentMap<DayOfWeek, Long>, ConcurrentMap<DayOfWeek, Long>> {
+
+    private final long delay;
+
+    // Конструктор с параметром задержки
+    public CustomChatCollector(long delay) {
+        this.delay = delay;
+    }
 
     @Override
     public Supplier<ConcurrentMap<DayOfWeek, Long>> supplier() {
@@ -29,10 +33,15 @@ public class CustomChatCollector implements Collector<Chat, ConcurrentMap<DayOfW
     @Override
     public BiConsumer<ConcurrentMap<DayOfWeek, Long>, Chat> accumulator() {
         return (accumulator, chat) -> {
-            var messageCountPerDay = chat.getMessages().stream().parallel().collect(new CustomMessageCollector());
-            messageCountPerDay.forEach(
-                    (k, v) ->
-                            accumulator.computeIfPresent(k,(key,oldValue)->oldValue+v)
+            // Используем задержку для вызова правильного метода
+            var messages = (delay > 0) ? chat.getMessagesWithDelay(delay) : chat.getMessages();
+
+            // Считаем сообщения по дням
+            var messageCountPerDay = messages.stream().parallel().collect(new CustomMessageCollector());
+
+            // Добавляем результат в accumulator
+            messageCountPerDay.forEach((day, count) ->
+                    accumulator.merge(day, count, Long::sum)
             );
         };
     }
@@ -40,17 +49,15 @@ public class CustomChatCollector implements Collector<Chat, ConcurrentMap<DayOfW
     @Override
     public BinaryOperator<ConcurrentMap<DayOfWeek, Long>> combiner() {
         return (map1, map2) -> {
-            map2.forEach(
-                    (map2Key, map2Value) -> {
-                        map1.compute(map2Key, (k, v) -> v + map2Value);
-                    });
+            map2.forEach((map2Key, map2Value) ->
+                    map1.merge(map2Key, map2Value, Long::sum));
             return map1;
         };
     }
 
     @Override
     public Function<ConcurrentMap<DayOfWeek, Long>, ConcurrentMap<DayOfWeek, Long>> finisher() {
-        return null;
+        return Function.identity();
     }
 
     @Override
@@ -58,11 +65,9 @@ public class CustomChatCollector implements Collector<Chat, ConcurrentMap<DayOfW
         return Set.of(UNORDERED, CONCURRENT, IDENTITY_FINISH);
     }
 
-
-    //https://habr.com/ru/companies/otus/articles/338770/ как юзать кастомный FJPool
-    public static Map<DayOfWeek, Long> countMessagesWithCustomCollector(List<Chat> chats) {
+    public static ConcurrentMap<DayOfWeek, Long> countMessagesWithCustomCollector(List<Chat> chats, long delay) {
         return chats.stream()
                 .parallel()
-                .collect(new CustomChatCollector());
+                .collect(new CustomChatCollector(delay));
     }
 }

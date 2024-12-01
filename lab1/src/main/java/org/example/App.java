@@ -6,11 +6,12 @@ import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 public class App {
-    public static void main(String[] args) {
-        var users = Generator.generateUsers(50);
-        List<Chat> chats = Generator.generateChats(50, users);
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        var users = Generator.generateUsers(500);
+        List<Chat> chats = Generator.generateChats(1000, users);
 
 
         Instant start, end;
@@ -108,5 +109,31 @@ public class App {
         Map<DayOfWeek, Long> totalMessages31 = CustomChatCollector.countMessagesWithCustomCollector(chats, 100L);
         end = Instant.now();
         System.out.println("Собственный коллектор: " + totalMessages31 + " сообщений. Время: " + (end.toEpochMilli() - start.toEpochMilli()) + " мс");
+
+        start = Instant.now();
+        Map<DayOfWeek, Long> totalMessages32 =  CustomChatCollector.countMessagesWithCustomCollectorOnCustomThreadPool2(chats,100L);
+        end = Instant.now();
+        System.out.println("Собственный коллектор на кастомном тред пуле 2: " + totalMessages32 + " сообщений. Время: " + (end.toEpochMilli() - start.toEpochMilli()) + " мс");
+
+        start = Instant.now();
+        Map<DayOfWeek, Long> totalMessages33 =  CustomChatCollector.countMessagesWithCustomCollectorOnCustomThreadPool4(chats,100L);
+        end = Instant.now();
+        System.out.println("Собственный коллектор на кастомном тред пуле 4: " + totalMessages33 + " сообщений. Время: " + (end.toEpochMilli() - start.toEpochMilli()) + " мс");
+
+        start = Instant.now();
+        Map<DayOfWeek, Long> totalMessages34 =  CustomChatCollector.countMessagesWithCustomCollectorOnCustomThreadPool10(chats,100L);
+        end = Instant.now();
+        System.out.println("Собственный коллектор на кастомном тред пуле 10: " + totalMessages34 + " сообщений. Время: " + (end.toEpochMilli() - start.toEpochMilli()) + " мс");
+
+        start = Instant.now();
+        Map<DayOfWeek, Long> totalMessages35 =  CustomChatCollector.countMessagesWithCustomCollectorOnCustomThreadPool10AndCustomSpliterator(chats,100L);
+        end = Instant.now();
+        System.out.println("Собственный коллектор на кастомном тред пуле 10 кастомным сплитератором: " + totalMessages35 + " сообщений. Время: " + (end.toEpochMilli() - start.toEpochMilli()) + " мс");
+
+        start = Instant.now();
+        Map<DayOfWeek, Long> totalMessages36 =  CustomChatCollector.countMessagesWithCustomCollectorOnCustomThreadPool10AndCustomSpliteratorAnotherWay(chats,100L);
+        end = Instant.now();
+        System.out.println("Собственный коллектор на кастомном тред пуле 10 кастомным сплитератором немного по другому: " + totalMessages36 + " сообщений. Время: " + (end.toEpochMilli() - start.toEpochMilli()) + " мс");
+
     }
 }

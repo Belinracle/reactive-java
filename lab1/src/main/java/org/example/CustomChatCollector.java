@@ -3,13 +3,14 @@ package org.example;
 import java.time.DayOfWeek;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.*;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
 import static java.util.stream.Collector.Characteristics.*;
 
 public class CustomChatCollector implements Collector<Chat, ConcurrentMap<DayOfWeek, Long>, ConcurrentMap<DayOfWeek, Long>> {
@@ -69,5 +70,57 @@ public class CustomChatCollector implements Collector<Chat, ConcurrentMap<DayOfW
         return chats.stream()
                 .parallel()
                 .collect(new CustomChatCollector(delay));
+    }
+
+    public static ConcurrentMap<DayOfWeek, Long> countMessagesWithCustomCollectorOnCustomThreadPool2(List<Chat> chats, long delay) throws ExecutionException, InterruptedException {
+        ForkJoinPool custom = new ForkJoinPool(2);
+        return custom.submit(() -> chats.stream()
+                .parallel()
+                .collect(new CustomChatCollector(delay))).get();
+    }
+
+    public static ConcurrentMap<DayOfWeek, Long> countMessagesWithCustomCollectorOnCustomThreadPool4(List<Chat> chats, long delay) throws ExecutionException, InterruptedException {
+        ForkJoinPool custom = new ForkJoinPool(4);
+        return custom.submit(() -> chats.stream()
+                .parallel()
+                .collect(new CustomChatCollector(delay))).get();
+    }
+
+    public static ConcurrentMap<DayOfWeek, Long> countMessagesWithCustomCollectorOnCustomThreadPool10(List<Chat> chats, long delay) throws ExecutionException, InterruptedException {
+        ForkJoinPool custom = new ForkJoinPool(8);
+        return custom.submit(() -> chats.stream()
+                .parallel()
+                .collect(new CustomChatCollector(delay))).get();
+    }
+
+    public static ConcurrentMap<DayOfWeek, Long> countMessagesWithCustomCollectorOnCustomThreadPool10AndCustomSpliterator(List<Chat> chats, long delay) throws ExecutionException, InterruptedException {
+        var spliter = new CustomMessageSpliterator(chats.parallelStream().flatMap(chat -> chat.getMessagesWithDelay(delay).stream()).collect(Collectors.toList()));
+        ForkJoinPool custom = new ForkJoinPool(10);
+        var predefinedMap = new ConcurrentHashMap<DayOfWeek, Long>();
+        for (var day : DayOfWeek.values()) {
+            predefinedMap.put(day, 0L);
+        }
+        custom.submit(() -> spliter.forEachRemaining(message -> {
+            var dayOfWeek = message.getTimestamp().getDayOfWeek();
+            predefinedMap.put(dayOfWeek, 1 + predefinedMap.get(dayOfWeek));
+        })).join();
+        return predefinedMap;
+    }
+
+    public static ConcurrentMap<DayOfWeek, Long> countMessagesWithCustomCollectorOnCustomThreadPool10AndCustomSpliteratorAnotherWay(List<Chat> chats, long delay) throws ExecutionException, InterruptedException {
+        var spliter = new CustomChatSpliterator(chats);
+        ForkJoinPool custom = new ForkJoinPool(10);
+        ForkJoinPool custom2 = new ForkJoinPool(10);
+        var predefinedMap = new ConcurrentHashMap<DayOfWeek, Long>();
+        for (var day : DayOfWeek.values()) {
+            predefinedMap.put(day, 0L);
+        }
+        custom.submit(() -> spliter.forEachRemaining(chat -> {
+            custom2.submit(() -> new CustomMessageSpliterator(chat.getMessagesWithDelay(delay)).forEachRemaining(message -> {
+                var dayOfWeek = message.getTimestamp().getDayOfWeek();
+                predefinedMap.put(dayOfWeek, 1 + predefinedMap.get(dayOfWeek));
+            })).join();
+        })).join();
+        return predefinedMap;
     }
 }

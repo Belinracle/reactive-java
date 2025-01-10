@@ -3,7 +3,6 @@ dontinline,*.*_avgt_jmhStub
 dontinline,*.*_sample_jmhStub
 dontinline,*.*_ss_jmhStub
 dontinline,*.*_thrpt_jmhStub
-inline,org/example/jmh/JMHBenchmark.benchFlowable
 inline,org/example/jmh/JMHBenchmark.benchObservable
-inline,org/example/jmh/JMHBenchmark.benchStream
+inline,org/example/jmh/JMHBenchmark.benchVirtualThread
 inline,org/example/jmh/JMHBenchmark.setup

@@ -34,18 +34,23 @@ public class JMHBenchmark {
         System.out.println("Generated " + chatCount + " chats");
     }
 
-    @Benchmark
-    public Map<DayOfWeek, Long> benchStream() {
-        return Calculator.calculateStatisticsParStreams(chats, delay);
-    }
+//    @Benchmark
+//    public Map<DayOfWeek, Long> benchStream() {
+//        return Calculator.calculateStatisticsParStreams(chats, delay);
+//    }
 
     @Benchmark
     public Map<DayOfWeek, Long> benchObservable() {
-        return Calculator.calculateStatisticsParStreams(chats, delay);
+        return Calculator.calculateStatisticsByObservable(chats, delay);
     }
 
+//    @Benchmark
+//    public Map<DayOfWeek, Long> benchFlowable() {
+//        return Calculator.calculateStatisticsByFlowableWithBackpressure(chats, delay);
+//    }
+//
     @Benchmark
-    public Map<DayOfWeek, Long> benchFlowable() {
-        return Calculator.calculateStatisticsByFlowableWithBackpressure(chats, delay);
+    public Map<DayOfWeek, Long> benchVirtualThread(){
+        return Calculator.calculateStatisticsByObservableOnVirtualThreads(chats, delay);
     }
 }

@@ -9,6 +9,7 @@ import org.example.domen.Message;
 import java.time.DayOfWeek;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class Calculator {
@@ -29,9 +30,17 @@ public class Calculator {
     public static Map<DayOfWeek, Long> calculateStatisticsByObservable(List<Chat> chats, Long delay) {
         return Observable.fromIterable(chats)
                 .subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.io())
                 .flatMap(chat -> Observable.fromIterable(chat.getMessagesWithDelay(delay)))
                 .observeOn(Schedulers.computation())
+                .collect(Collectors.groupingByConcurrent(message -> message.getTimestamp().getDayOfWeek(), Collectors.counting()))
+                .blockingGet();
+    }
+
+    public static Map<DayOfWeek, Long> calculateStatisticsByObservableOnVirtualThreads(List<Chat> chats, Long delay) {
+        return Observable.fromIterable(chats)
+                .subscribeOn(Schedulers.from(Executors.newVirtualThreadPerTaskExecutor()))
+                .flatMap(chat -> Observable.fromIterable(chat.getMessagesWithDelay(delay)))
+                .observeOn(Schedulers.single())
                 .collect(Collectors.groupingByConcurrent(message -> message.getTimestamp().getDayOfWeek(), Collectors.counting()))
                 .blockingGet();
     }

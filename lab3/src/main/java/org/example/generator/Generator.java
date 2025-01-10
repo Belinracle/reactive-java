@@ -26,7 +26,7 @@ public class Generator {
     public static List<Chat> generateChats(int count, List<User> users) {
         Model<Chat> model = Instancio.of(Chat.class)
                 .supply(field(Chat::getParticipants), () -> generateParticipants(users))
-                .supply(field(Chat::getMessages), () -> generateMessages(count, users))
+                .supply(field(Chat::getMessages), () -> generateMessages(100, users))
                 .toModel();
 
         return Instancio.ofList(model).size(count).create();

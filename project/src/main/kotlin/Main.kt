@@ -62,7 +62,7 @@ fun main() {
     }?.filter { it.endsWith("USDT") and ((it.length - it.replace("USD", "").length) == 3) }?.toSet()
         ?: throw IllegalArgumentException("какая то хуйня пришла")
 
-    val symbolsToSubscribe = parsedSymbols.take(16).map {
+    val symbolsToSubscribe = parsedSymbols.take(32).map {
         "${it.lowercase()}@kline_1m"
     } as ArrayList<String>
     logger.info("symbolsToSubscribe $symbolsToSubscribe")
@@ -111,6 +111,7 @@ fun main() {
         .runOn(Schedulers.boundedElastic())
 //        .log()
         .map { event ->
+            logger.info("handle binance event")
             val parsedEvent = objectMapper.readValue<Map<String, Any>>(event)
             val klineEvent = parsedEvent["data"] as Map<String, Any>
             val klineDto = klineEvent["k"] as Map<String, Any>
@@ -119,12 +120,16 @@ fun main() {
         .flatMap { klineDto ->
             Mono.zip(
                 Mono.fromFuture(CompletableFuture.supplyAsync({
+                    logger.info("store to redis")
                     // save to postgres db
-                    jedisPool.borrowObject()
+                    val jedisResource = jedisPool.resource
+                    jedisResource
                         .lpush("queue#spotCandles", klineDto.toString())
+                    jedisResource.close()
                     return@supplyAsync 1
                 }, ioExecutorService)),
                 Mono.fromFuture(CompletableFuture.supplyAsync({
+                    logger.info("store to mongo")
                     spotCollection.updateOne(
                         Filters.eq("_id", klineDto["s"]!!),
                         Document("\$set", Document("lastPrice", klineDto["c"]!!))
@@ -134,6 +139,7 @@ fun main() {
             )
         }
         .subscribe { tuple ->
+            logger.info("sending to nats")
             natsConnection.publish("candles", objectMapper.writeValueAsString(tuple.t3).toByteArray())
         }
 }
